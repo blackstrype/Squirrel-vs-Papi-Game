@@ -1,4 +1,4 @@
-// PhysicsEngine.js - Collision, Raycasting & Subway Surfers Branch Parkour Physics
+// PhysicsEngine.js - Collision, Raycasting & Solid Object Physics
 import * as THREE from 'three';
 
 export class PhysicsEngine {
@@ -57,6 +57,84 @@ export class PhysicsEngine {
     }
 
     return { canClimb: false };
+  }
+
+  // Solid Object Collision Response (House Walls, Shed Walls, Tree Trunk, Fences)
+  resolveSolidCollisions(position, playerRadius = 0.4, isClimbing = false, onBranchMode = false) {
+    if (onBranchMode) return;
+
+    // 1. House Solid Bounding Box
+    // House bounds: x [-8.0, 8.0], z [-4.0, 8.0], y [0, 8.0]
+    if (position.y < 8.0) {
+      const minX = -8.0 - playerRadius;
+      const maxX = 8.0 + playerRadius;
+      const minZ = -4.0 - playerRadius;
+      const maxZ = 8.0 + playerRadius;
+
+      if (position.x > minX && position.x < maxX && position.z > minZ && position.z < maxZ) {
+        const dx1 = position.x - minX;
+        const dx2 = maxX - position.x;
+        const dz1 = position.z - minZ;
+        const dz2 = maxZ - position.z;
+
+        const minDist = Math.min(dx1, dx2, dz1, dz2);
+        if (minDist === dx1) position.x = minX;
+        else if (minDist === dx2) position.x = maxX;
+        else if (minDist === dz1) position.z = minZ;
+        else if (minDist === dz2) position.z = maxZ;
+      }
+    }
+
+    // 2. Garden Shed Solid Box
+    // Shed bounds: x [-19.0, -13.0], z [-19.0, -13.0], y [0, 4.5]
+    if (position.y < 4.5) {
+      const minX = -19.0 - playerRadius;
+      const maxX = -13.0 + playerRadius;
+      const minZ = -19.0 - playerRadius;
+      const maxZ = -13.0 + playerRadius;
+
+      if (position.x > minX && position.x < maxX && position.z > minZ && position.z < maxZ) {
+        const dx1 = position.x - minX;
+        const dx2 = maxX - position.x;
+        const dz1 = position.z - minZ;
+        const dz2 = maxZ - position.z;
+
+        const minDist = Math.min(dx1, dx2, dz1, dz2);
+        if (minDist === dx1) position.x = minX;
+        else if (minDist === dx2) position.x = maxX;
+        else if (minDist === dz1) position.z = minZ;
+        else if (minDist === dz2) position.z = maxZ;
+      }
+    }
+
+    // 3. Oak Tree Trunk Solid Cylinder
+    // Tree trunk center (0, -14), radius 1.4m, y [0, 8.5]
+    if (!isClimbing && position.y < 8.5) {
+      const treeCenter = new THREE.Vector2(0, -14);
+      const pos2D = new THREE.Vector2(position.x, position.z);
+      const dist = pos2D.distanceTo(treeCenter);
+      const minRadius = 1.4 + playerRadius;
+
+      if (dist < minRadius && dist > 0.001) {
+        const pushDir = pos2D.sub(treeCenter).normalize();
+        position.x = treeCenter.x + pushDir.x * minRadius;
+        position.z = treeCenter.y + pushDir.y * minRadius;
+      }
+    }
+
+    // 4. Perimeter Fences
+    // Back Fence z = -24
+    if (!isClimbing && Math.abs(position.z - (-24)) < 0.8 && position.x >= -24.5 && position.x <= 24.5 && position.y < 2.8) {
+      position.z = -24.0 + (playerRadius + 0.3);
+    }
+    // Left Fence x = -24
+    if (!isClimbing && Math.abs(position.x - (-24)) < 0.8 && position.z >= -24.5 && position.z <= 15.5 && position.y < 2.8) {
+      position.x = -24.0 + (playerRadius + 0.3);
+    }
+    // Right Fence x = 24
+    if (!isClimbing && Math.abs(position.x - 24) < 0.8 && position.z >= -24.5 && position.z <= 15.5 && position.y < 2.8) {
+      position.x = 24.0 - (playerRadius + 0.3);
+    }
   }
 
   // Detect Subway Surfers style Branch / Rail surfaces (Tree branches, power wires, fence rails)

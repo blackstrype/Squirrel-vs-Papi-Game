@@ -371,6 +371,10 @@ export class PlayerController {
 
     // Clamp inside yard boundaries
     this.physics.clampBoundaries(this.position);
+
+    // Resolve Solid Object Wall Collisions (House, Shed, Tree Trunk, Fences)
+    const pRadius = this.activeCharacterType === 'squirrel' ? 0.4 : 0.6;
+    this.physics.resolveSolidCollisions(this.position, pRadius, this.isClimbing, this.onBranchMode);
   }
 
   updateHoseParticles(delta) {
