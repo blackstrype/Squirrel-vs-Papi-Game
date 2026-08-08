@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Squirrel vs. Papi: Backyard Feeder Heist & Defense</title>
+  <link rel="stylesheet" href="/src/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <!-- 3D WebGL Canvas -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- First-Person FPS Crosshair -->
+    <div id="crosshair" class="crosshair"></div>
+
+    <!-- Mouse Look Pointer Lock Prompt Banner -->
+    <div id="mouse-look-hint" class="mouse-look-hint">
+      🖱️ Click Canvas to Enable <strong>First-Person Mouse Look</strong> (FPS Mode)
+    </div>
+
+    <!-- Main HUD Overlay -->
+    <div id="hud" class="hud-layer hidden">
+      <!-- Top Left: Character Profile & Status -->
+      <div class="hud-card character-card">
+        <div class="char-avatar" id="char-avatar">🐿️</div>
+        <div class="char-info">
+          <div class="char-name" id="char-name">Nutty the Squirrel</div>
+          <div class="char-role" id="char-role">FPS Acrobatic Heist Master</div>
+          <div class="stat-bar-container">
+            <span class="stat-label" id="primary-stat-label">Seeds Stolen</span>
+            <div class="stat-bar">
+              <div class="stat-fill" id="primary-stat-fill" style="width: 0%;"></div>
+              <span class="stat-text" id="primary-stat-text">0 / 50</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Center: Objective & Timer Banner -->
+      <div class="hud-card objective-card">
+        <div class="objective-header">
+          <span class="pulse-dot"></span>
+          <span id="objective-title">CURRENT MISSION</span>
+        </div>
+        <div class="objective-desc" id="objective-desc">Raid the birdfeeders and bring seeds back to the Tree Nest!</div>
+        <div class="timer-badge hidden" id="timer-badge">⏱️ <span id="timer-text">02:00</span></div>
+        <!-- Subway Surfers Branch Mode Indicator -->
+        <div id="branch-mode-badge" class="branch-mode-badge hidden">
+          🌿 BRANCH RAIL MODE: [W/S] Move Along Branch | [A/D] Yaw Around | [Space] Jump Off
+        </div>
+      </div>
+
+      <!-- Top Right: Score / Golden Acorns -->
+      <div class="hud-card score-card">
+        <div class="golden-acorn-badge">
+          <span>🏆 Golden Acorns:</span>
+          <span id="golden-acorn-count" class="accent-text">0 / 10</span>
+        </div>
+        <div class="mode-badge" id="mode-badge">FREE ROAM FPS</div>
+      </div>
+
+      <!-- Character Switcher Wheel / Quick Select (Bottom Center) -->
+      <div class="hud-bottom-center">
+        <div class="char-switcher" id="char-switcher">
+          <button class="char-btn active" data-char="squirrel" title="Press [1] to play as Squirrel">
+            <span class="icon">🐿️</span>
+            <span class="label">Squirrel [1]</span>
+          </button>
+          <button class="char-btn" data-char="papi" title="Press [2] to play as Papi">
+            <span class="icon">👴</span>
+            <span class="label">Papi [2]</span>
+          </button>
+          <button class="char-btn" data-char="racoon" title="Press [3] to play as Racoon">
+            <span class="icon">🦝</span>
+            <span class="label">Racoon [3]</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Bottom Right: Minimap / Radar & Action Hint -->
+      <div class="hud-bottom-right">
+        <div class="action-prompt hidden" id="action-prompt">
+          <span class="key-badge">E</span>
+          <span id="action-text">Interact</span>
+        </div>
+        <div class="minimap-container">
+          <canvas id="minimap-canvas" width="140" height="140"></canvas>
+          <span class="minimap-label">PAPI'S BACKYARD</span>
+        </div>
+      </div>
+
+      <!-- Controls Cheat Sheet (Bottom Left) -->
+      <div class="hud-card controls-card">
+        <div class="control-row"><span class="key">Mouse</span> Look Around (FPS)</div>
+        <div class="control-row"><span class="key">WASD</span> FPS Movement</div>
+        <div class="control-row"><span class="key">Branch</span> W/S Along, A/D Yaw</div>
+        <div class="control-row"><span class="key">Space</span> Jump / Leave Rail</div>
+        <div class="control-row"><span class="key">V</span> Toggle 1st / 3rd Person</div>
+        <div class="control-row"><span class="key">1-3</span> Switch Character</div>
+      </div>
+    </div>
+
+    <!-- Title Screen / Main Menu Modal -->
+    <div id="main-menu" class="modal-overlay">
+      <div class="modal-card main-menu-card">
+        <div class="game-logo">
+          <h1>SQUIRREL <span class="vs-badge">VS</span> PAPI</h1>
+          <p class="tagline">First-Person Backyard Heist & Subway Surfers Rail Parkour</p>
+        </div>
+
+        <div class="mode-select-grid">
+          <div class="mode-card" data-mode="raid">
+            <div class="mode-icon">🐿️</div>
+            <h3>SQUIRREL HEIST</h3>
+            <p>Infiltrate Papi's yard, dodge his water hose, and steal 50 seeds from birdfeeders!</p>
+            <button class="btn btn-primary">Play Heist</button>
+          </div>
+
+          <div class="mode-card" data-mode="defense">
+            <div class="mode-icon">👴</div>
+            <h3>PAPI'S DEFENSE</h3>
+            <p>Play as Papi in 1st-person FPS view! Blast wildlife with your water hose sprayer!</p>
+            <button class="btn btn-secondary">Play Defense</button>
+          </div>
+
+          <div class="mode-card" data-mode="sandbox">
+            <div class="mode-icon">🏡</div>
+            <h3>FREE ROAM SANDBOX</h3>
+            <p>Explore the neighborhood in FPS mode. Test Subway Surfers branch parkour & collect 10 Golden Acorns!</p>
+            <button class="btn btn-accent">Explore Neighborhood</button>
+          </div>
+        </div>
+
+        <div class="menu-footer">
+          <button id="btn-how-to-play" class="btn-text">❓ Controls & Guide</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- How To Play Modal -->
+    <div id="guide-modal" class="modal-overlay hidden">
+      <div class="modal-card guide-card">
+        <h2>HOW TO PLAY - FPS & RAIL PARKOUR</h2>
+        <div class="guide-grid">
+          <div class="guide-item">
+            <h3>👁️ First-Person Mouse Look</h3>
+            <p>Click anywhere on the screen to lock your mouse pointer. Move the mouse to look around in full 360° FPS view. Press <strong>[V]</strong> to toggle camera mode.</p>
+          </div>
+          <div class="guide-item">
+            <h3>🌿 Branch Rail Parkour</h3>
+            <p>Climb onto any tree branch, power wire, or fence rail to enter Subway Surfers mode! Press <strong>[W/S]</strong> to run along the rail, <strong>[A/D]</strong> to yaw around the branch cylinder, and <strong>[Space]</strong> to jump off!</p>
+          </div>
+          <div class="guide-item">
+            <h3>👴 Papi FPS Water Hose</h3>
+            <p>Aim with your mouse crosshair and hold <strong>[E]</strong> or <strong>Left Click</strong> to spray water hose droplets at raiding squirrels!</p>
+          </div>
+        </div>
+        <button id="btn-close-guide" class="btn btn-primary mt-4">Got It!</button>
+      </div>
+    </div>
+
+    <!-- Game Over / Victory Modal -->
+    <div id="game-over-modal" class="modal-overlay hidden">
+      <div class="modal-card result-card">
+        <div class="result-icon" id="result-icon">🏆</div>
+        <h2 id="result-title">MISSION COMPLETE!</h2>
+        <p id="result-message">Nutty successfully raided Papi's feeders and stored enough seeds for winter!</p>
+        <div class="result-stats">
+          <div class="stat-box">
+            <span class="stat-val" id="result-score">50</span>
+            <span class="stat-lbl">Seeds Collected</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-val" id="result-time">01:42</span>
+            <span class="stat-lbl">Time Elapsed</span>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button id="btn-restart" class="btn btn-primary">Play Again</button>
+          <button id="btn-menu" class="btn btn-secondary">Main Menu</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
