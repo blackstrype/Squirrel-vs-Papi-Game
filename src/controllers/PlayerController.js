@@ -115,6 +115,7 @@ export class PlayerController {
     }
     this.activeMesh.position.copy(this.position);
     this.onBranchMode = false;
+    this.isClimbing = false;
     this.branchCooldown = 0;
   }
 
@@ -196,18 +197,27 @@ export class PlayerController {
     if (this.onBranchMode) {
       // Jump off branch back to free movement
       this.onBranchMode = false;
-      this.branchCooldown = 1.2; // 1.2 second cooldown before re-attaching
+      this.branchCooldown = 1.2;
       this.velocity.y = 11.0;
-      this.position.y += 1.2; // Pop clear of branch radius
+      this.position.y += 1.2;
       this.isGrounded = false;
       this.audio.playJump();
       return;
     }
 
-    if (this.isGrounded || this.isClimbing) {
+    if (this.isClimbing) {
+      // Jump off tree trunk / fence back to free movement
+      this.isClimbing = false;
+      this.velocity.y = 9.0;
+      this.position.z += 1.0;
+      this.isGrounded = false;
+      this.audio.playJump();
+      return;
+    }
+
+    if (this.isGrounded) {
       this.velocity.y = this.activeCharacterType === 'squirrel' ? 9.5 : 7.0;
       this.isGrounded = false;
-      this.isClimbing = false;
       this.audio.playJump();
     }
   }
@@ -228,6 +238,7 @@ export class PlayerController {
         this.currentBranchData = branchCheck;
         this.branchU = branchCheck.currentU;
         this.branchYawAngle = 0;
+        this.isClimbing = false;
       }
     }
 
@@ -314,14 +325,58 @@ export class PlayerController {
     }
   }
 
-  // FPS FREE MOVEMENT
+  // FPS FREE MOVEMENT & TREE CLIMBING
   updateFPSFreeMovement(delta) {
     let moveSpeed = 7.5;
     if (this.activeCharacterType === 'squirrel') moveSpeed = 10.0;
     if (this.activeCharacterType === 'racoon') moveSpeed = 7.0;
     if (this.isSprint()) moveSpeed *= 1.5;
 
-    // Camera forward and right direction vectors
+    // Check Tree Trunk Climbing for Squirrel
+    if (this.activeCharacterType === 'squirrel') {
+      const treeCheck = this.physics.checkTreeClimbing(this.position);
+
+      if (treeCheck.canClimb && (this.isW() || this.isClimbing)) {
+        this.isClimbing = true;
+        const climbSpeed = 7.5;
+
+        // [W] Climb UP tree trunk
+        if (this.isW()) {
+          this.position.y += climbSpeed * delta;
+        }
+        // [S] Climb DOWN tree trunk
+        if (this.isS()) {
+          this.position.y -= climbSpeed * delta;
+        }
+
+        // Latch onto tree trunk surface at radius 1.45m around center (0, -14)
+        const treeCenter = treeCheck.treeCenter; // (0, -14)
+        let angle = Math.atan2(this.position.x - treeCenter.x, this.position.z - treeCenter.y);
+
+        // [A] Shimmy left around trunk
+        if (this.isA()) angle -= 3.0 * delta;
+        // [D] Shimmy right around trunk
+        if (this.isD()) angle += 3.0 * delta;
+
+        const trunkRadius = 1.45;
+        this.position.x = treeCenter.x + Math.sin(angle) * trunkRadius;
+        this.position.z = treeCenter.y + Math.cos(angle) * trunkRadius;
+        this.velocity.y = 0;
+
+        // Auto-transition to top branches when reaching top of trunk
+        if (this.position.y >= 8.5) {
+          this.position.y = 8.6;
+        } else if (this.position.y <= 0) {
+          this.position.y = 0;
+          this.isClimbing = false;
+        }
+        return; // Skip standard ground movement while climbing tree
+      } else {
+        this.isClimbing = false;
+      }
+    }
+
+    // Standard Free Movement
     const forward = new THREE.Vector3(Math.sin(this.yaw), 0, -Math.cos(this.yaw));
     const right = new THREE.Vector3(Math.cos(this.yaw), 0, Math.sin(this.yaw));
 
@@ -336,24 +391,6 @@ export class PlayerController {
       moveVector.normalize();
       this.position.x += moveVector.x * moveSpeed * delta;
       this.position.z += moveVector.z * moveSpeed * delta;
-    }
-
-    // Vertical tree/fence climbing for squirrel
-    if (this.activeCharacterType === 'squirrel') {
-      const treeCheck = this.physics.checkTreeClimbing(this.position);
-      const fenceCheck = this.physics.checkFenceClimbing(this.position);
-
-      if (treeCheck.canClimb && (this.isW() || this.keys['Space'])) {
-        this.isClimbing = true;
-        this.position.y += 6.5 * delta;
-        this.velocity.y = 0;
-      } else if (fenceCheck.canClimb && (this.isW() || this.keys['Space'])) {
-        this.isClimbing = true;
-        this.position.y += 5.5 * delta;
-        this.velocity.y = 0;
-      } else {
-        this.isClimbing = false;
-      }
     }
 
     // Gravity & Ground Physics
@@ -372,7 +409,7 @@ export class PlayerController {
     // Clamp inside yard boundaries
     this.physics.clampBoundaries(this.position);
 
-    // Resolve Solid Object Wall Collisions (House, Shed, Tree Trunk, Fences)
+    // Resolve Solid Object Wall Collisions
     const pRadius = this.activeCharacterType === 'squirrel' ? 0.4 : 0.6;
     this.physics.resolveSolidCollisions(this.position, pRadius, this.isClimbing, this.onBranchMode);
   }

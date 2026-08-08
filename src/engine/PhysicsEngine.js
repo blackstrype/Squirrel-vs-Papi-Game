@@ -29,31 +29,31 @@ export class PhysicsEngine {
     return groundY;
   }
 
-  // Check if position is near a climbable Tree Trunk
+  // Check if position is near climbable Tree Trunk
   checkTreeClimbing(position) {
     const treeCenter = new THREE.Vector2(0, -14);
     const pos2D = new THREE.Vector2(position.x, position.z);
     const dist = pos2D.distanceTo(treeCenter);
 
-    if (dist < 2.2 && position.y >= 0.5 && position.y <= 12) {
-      return { canClimb: true, targetX: 0, targetZ: -14 + 1.8 };
+    if (dist < 2.8 && position.y <= 9.0) {
+      return { canClimb: true, treeCenter, dist };
     }
     return { canClimb: false };
   }
 
-  // Check if position is near a climbable Fence
+  // Check if position is near climbable Fence
   checkFenceClimbing(position) {
     // Back Fence (z = -24)
-    if (Math.abs(position.z - (-24)) < 0.8 && position.x >= -24 && position.x <= 24) {
-      return { canClimb: true, topY: 3.0 };
+    if (Math.abs(position.z - (-24)) < 1.2 && position.x >= -24.5 && position.x <= 24.5 && position.y <= 3.2) {
+      return { canClimb: true, topY: 3.0, fenceZ: -24 };
     }
     // Left Fence (x = -24)
-    if (Math.abs(position.x - (-24)) < 0.8 && position.z >= -24 && position.z <= 15) {
-      return { canClimb: true, topY: 3.0 };
+    if (Math.abs(position.x - (-24)) < 1.2 && position.z >= -24.5 && position.z <= 15.5 && position.y <= 3.2) {
+      return { canClimb: true, topY: 3.0, fenceX: -24 };
     }
     // Right Fence (x = 24)
-    if (Math.abs(position.x - 24) < 0.8 && position.z >= -24 && position.z <= 15) {
-      return { canClimb: true, topY: 3.0 };
+    if (Math.abs(position.x - 24) < 1.2 && position.z >= -24.5 && position.z <= 15.5 && position.y <= 3.2) {
+      return { canClimb: true, topY: 3.0, fenceX: 24 };
     }
 
     return { canClimb: false };
@@ -107,8 +107,7 @@ export class PhysicsEngine {
       }
     }
 
-    // 3. Oak Tree Trunk Solid Cylinder
-    // Tree trunk center (0, -14), radius 1.4m, y [0, 8.5]
+    // 3. Oak Tree Trunk Solid Cylinder (Only when NOT climbing tree)
     if (!isClimbing && position.y < 8.5) {
       const treeCenter = new THREE.Vector2(0, -14);
       const pos2D = new THREE.Vector2(position.x, position.z);
@@ -123,21 +122,23 @@ export class PhysicsEngine {
     }
 
     // 4. Perimeter Fences
-    // Back Fence z = -24
-    if (!isClimbing && Math.abs(position.z - (-24)) < 0.8 && position.x >= -24.5 && position.x <= 24.5 && position.y < 2.8) {
-      position.z = -24.0 + (playerRadius + 0.3);
-    }
-    // Left Fence x = -24
-    if (!isClimbing && Math.abs(position.x - (-24)) < 0.8 && position.z >= -24.5 && position.z <= 15.5 && position.y < 2.8) {
-      position.x = -24.0 + (playerRadius + 0.3);
-    }
-    // Right Fence x = 24
-    if (!isClimbing && Math.abs(position.x - 24) < 0.8 && position.z >= -24.5 && position.z <= 15.5 && position.y < 2.8) {
-      position.x = 24.0 - (playerRadius + 0.3);
+    if (!isClimbing) {
+      // Back Fence z = -24
+      if (Math.abs(position.z - (-24)) < 0.8 && position.x >= -24.5 && position.x <= 24.5 && position.y < 2.8) {
+        position.z = -24.0 + (playerRadius + 0.3);
+      }
+      // Left Fence x = -24
+      if (Math.abs(position.x - (-24)) < 0.8 && position.z >= -24.5 && position.z <= 15.5 && position.y < 2.8) {
+        position.x = -24.0 + (playerRadius + 0.3);
+      }
+      // Right Fence x = 24
+      if (Math.abs(position.x - 24) < 0.8 && position.z >= -24.5 && position.z <= 15.5 && position.y < 2.8) {
+        position.x = 24.0 - (playerRadius + 0.3);
+      }
     }
   }
 
-  // Detect Subway Surfers style Branch / Rail surfaces (Tree branches, power wires, fence rails)
+  // Detect Subway Surfers style Branch / Rail surfaces
   checkBranchRail(position) {
     const branches = [
       // 1. Oak Tree Right Branch
