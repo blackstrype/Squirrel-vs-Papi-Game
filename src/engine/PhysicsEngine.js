@@ -41,6 +41,23 @@ export class PhysicsEngine {
     return { canClimb: false };
   }
 
+  // Check if position is near climbable Electrical / Telephone Poles
+  checkPoleClimbing(position) {
+    const poles = [
+      { id: 1, center: new THREE.Vector2(-22, 8), topY: 11.5 },
+      { id: 2, center: new THREE.Vector2(22, 8), topY: 11.5 }
+    ];
+
+    for (let pole of poles) {
+      const pos2D = new THREE.Vector2(position.x, position.z);
+      const dist = pos2D.distanceTo(pole.center);
+      if (dist < 2.6 && position.y <= pole.topY + 0.5) {
+        return { canClimb: true, poleCenter: pole.center, topY: pole.topY };
+      }
+    }
+    return { canClimb: false };
+  }
+
   // Check if position is near climbable Fence
   checkFenceClimbing(position) {
     // Back Fence (z = -24)
@@ -59,7 +76,7 @@ export class PhysicsEngine {
     return { canClimb: false };
   }
 
-  // Solid Object Collision Response (House Walls, Shed Walls, Tree Trunk, Fences)
+  // Solid Object Collision Response (House Walls, Shed Walls, Tree Trunk, Fences, Poles)
   resolveSolidCollisions(position, playerRadius = 0.4, isClimbing = false, onBranchMode = false) {
     if (onBranchMode) return;
 
@@ -121,7 +138,22 @@ export class PhysicsEngine {
       }
     }
 
-    // 4. Perimeter Fences
+    // 4. Electrical Poles Solid Cylinder (Only when NOT climbing poles)
+    if (!isClimbing) {
+      const poles = [new THREE.Vector2(-22, 8), new THREE.Vector2(22, 8)];
+      for (let pCenter of poles) {
+        const pos2D = new THREE.Vector2(position.x, position.z);
+        const dist = pos2D.distanceTo(pCenter);
+        const minRadius = 0.45 + playerRadius;
+        if (dist < minRadius && dist > 0.001) {
+          const pushDir = pos2D.sub(pCenter).normalize();
+          position.x = pCenter.x + pushDir.x * minRadius;
+          position.z = pCenter.y + pushDir.y * minRadius;
+        }
+      }
+    }
+
+    // 5. Perimeter Fences
     if (!isClimbing) {
       // Back Fence z = -24
       if (Math.abs(position.z - (-24)) < 0.8 && position.x >= -24.5 && position.x <= 24.5 && position.y < 2.8) {

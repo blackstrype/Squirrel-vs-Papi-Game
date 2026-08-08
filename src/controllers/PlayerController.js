@@ -206,7 +206,7 @@ export class PlayerController {
     }
 
     if (this.isClimbing) {
-      // Jump off tree trunk / fence back to free movement
+      // Jump off tree trunk / pole back to free movement
       this.isClimbing = false;
       this.velocity.y = 9.0;
       this.position.z += 1.0;
@@ -325,37 +325,29 @@ export class PlayerController {
     }
   }
 
-  // FPS FREE MOVEMENT & TREE CLIMBING
+  // FPS FREE MOVEMENT, TREE & POLE CLIMBING
   updateFPSFreeMovement(delta) {
     let moveSpeed = 7.5;
     if (this.activeCharacterType === 'squirrel') moveSpeed = 10.0;
     if (this.activeCharacterType === 'racoon') moveSpeed = 7.0;
     if (this.isSprint()) moveSpeed *= 1.5;
 
-    // Check Tree Trunk Climbing for Squirrel
+    // Check Tree & Pole Climbing for Squirrel
     if (this.activeCharacterType === 'squirrel') {
       const treeCheck = this.physics.checkTreeClimbing(this.position);
+      const poleCheck = this.physics.checkPoleClimbing(this.position);
 
       if (treeCheck.canClimb && (this.isW() || this.isClimbing)) {
         this.isClimbing = true;
         const climbSpeed = 7.5;
 
-        // [W] Climb UP tree trunk
-        if (this.isW()) {
-          this.position.y += climbSpeed * delta;
-        }
-        // [S] Climb DOWN tree trunk
-        if (this.isS()) {
-          this.position.y -= climbSpeed * delta;
-        }
+        if (this.isW()) this.position.y += climbSpeed * delta;
+        if (this.isS()) this.position.y -= climbSpeed * delta;
 
-        // Latch onto tree trunk surface at radius 1.45m around center (0, -14)
         const treeCenter = treeCheck.treeCenter; // (0, -14)
         let angle = Math.atan2(this.position.x - treeCenter.x, this.position.z - treeCenter.y);
 
-        // [A] Shimmy left around trunk
         if (this.isA()) angle -= 3.0 * delta;
-        // [D] Shimmy right around trunk
         if (this.isD()) angle += 3.0 * delta;
 
         const trunkRadius = 1.45;
@@ -363,14 +355,39 @@ export class PlayerController {
         this.position.z = treeCenter.y + Math.cos(angle) * trunkRadius;
         this.velocity.y = 0;
 
-        // Auto-transition to top branches when reaching top of trunk
         if (this.position.y >= 8.5) {
           this.position.y = 8.6;
         } else if (this.position.y <= 0) {
           this.position.y = 0;
           this.isClimbing = false;
         }
-        return; // Skip standard ground movement while climbing tree
+        return;
+      } else if (poleCheck.canClimb && (this.isW() || this.isClimbing)) {
+        this.isClimbing = true;
+        const climbSpeed = 7.5;
+
+        if (this.isW()) this.position.y += climbSpeed * delta;
+        if (this.isS()) this.position.y -= climbSpeed * delta;
+
+        const pCenter = poleCheck.poleCenter;
+        let angle = Math.atan2(this.position.x - pCenter.x, this.position.z - pCenter.y);
+
+        if (this.isA()) angle -= 3.0 * delta;
+        if (this.isD()) angle += 3.0 * delta;
+
+        const poleRadius = 0.5;
+        this.position.x = pCenter.x + Math.sin(angle) * poleRadius;
+        this.position.z = pCenter.y + Math.cos(angle) * poleRadius;
+        this.velocity.y = 0;
+
+        // Auto-transition to overhead power wire when reaching top of electrical pole
+        if (this.position.y >= poleCheck.topY) {
+          this.position.y = poleCheck.topY + 0.1;
+        } else if (this.position.y <= 0) {
+          this.position.y = 0;
+          this.isClimbing = false;
+        }
+        return;
       } else {
         this.isClimbing = false;
       }
