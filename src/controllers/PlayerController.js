@@ -276,23 +276,29 @@ export class PlayerController {
     const speed = 10.0;
     const yawSpeed = 4.0;
 
-    // [W] Forward along branch
-    if (this.isW()) {
-      this.branchU += speed * delta;
+    // Camera forward and right direction vectors relative to current orientation (yaw)
+    const camForward = new THREE.Vector3(Math.sin(this.yaw), 0, -Math.cos(this.yaw));
+    const camRight = new THREE.Vector3(Math.cos(this.yaw), 0, Math.sin(this.yaw));
+
+    // Intended input movement vector
+    const moveInput = new THREE.Vector3();
+    if (this.isW()) moveInput.add(camForward);
+    if (this.isS()) moveInput.sub(camForward);
+    if (this.isA()) moveInput.sub(camRight);
+    if (this.isD()) moveInput.add(camRight);
+
+    if (moveInput.lengthSq() > 0) {
+      moveInput.normalize();
+      // Project intended movement vector onto rail direction vector to maintain movement in view direction
+      const railDot = moveInput.dot(b.direction);
+      this.branchU += railDot * speed * delta;
     }
 
-    // [S] Backward along branch
-    if (this.isS()) {
-      this.branchU -= speed * delta;
-    }
-
-    // [A] Yaw left around branch cylinder
-    if (this.isA()) {
+    // A and D also allow manual rotation around branch cylinder when desired
+    if (this.isA() && !this.isW() && !this.isS()) {
       this.branchYawAngle -= yawSpeed * delta;
     }
-
-    // [D] Yaw right around branch cylinder
-    if (this.isD()) {
+    if (this.isD() && !this.isW() && !this.isS()) {
       this.branchYawAngle += yawSpeed * delta;
     }
 
