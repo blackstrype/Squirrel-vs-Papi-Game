@@ -7,26 +7,61 @@ export class PhysicsEngine {
     this.raycaster = new THREE.Raycaster();
   }
 
-  // Check if player position intersects with ground or climbable surfaces
-  checkGroundCollision(position, radius = 0.5) {
-    let groundY = 0; // Lawn base height
+  // Get maximum physical standing surface height beneath position (x, z)
+  checkGroundCollision(position, radius = 0.4) {
+    let maxY = 0; // Lawn base height
 
-    // Check Patio Deck height (0.4)
-    if (position.x >= -9 && position.x <= 9 && position.z >= -7.8 && position.z <= -3.8) {
-      groundY = 0.4;
+    // 1. Porch Deck (y = 0.4)
+    if (position.x >= -9.2 && position.x <= 9.2 && position.z >= -8.0 && position.z <= -3.5) {
+      if (position.y >= 0.1) maxY = Math.max(maxY, 0.4);
     }
 
-    // Check Shed Roof height (4.5)
-    if (position.x >= -19 && position.x <= -13 && position.z >= -19 && position.z <= -13) {
-      groundY = 4.5;
+    // 2. House Main Roof & Apex (y = 8.0 to 12.2)
+    if (position.x >= -8.4 && position.x <= 8.4 && position.z >= -4.4 && position.z <= 8.4) {
+      if (position.y >= 7.2) {
+        const normX = Math.abs(position.x) / 8.0;
+        const normZ = Math.abs(position.z - 2.0) / 6.0;
+        const roofH = 8.0 + 4.2 * (1.0 - Math.min(1.0, Math.max(normX, normZ)));
+        maxY = Math.max(maxY, roofH);
+      }
     }
 
-    // Check House Roof peak (~8.0 to 10.0)
-    if (position.x >= -8 && position.x <= 8 && position.z >= -4 && position.z <= 8) {
-      groundY = 8.0;
+    // 3. Garden Shed Roof (y = 4.5 to 6.8)
+    if (position.x >= -19.4 && position.x <= -12.6 && position.z >= -19.4 && position.z <= -12.6) {
+      if (position.y >= 3.8) {
+        const distFromCenter = Math.hypot(position.x - (-16), position.z - (-16));
+        const shedRoofH = Math.max(4.5, 6.8 - distFromCenter * 0.7);
+        maxY = Math.max(maxY, shedRoofH);
+      }
     }
 
-    return groundY;
+    // 4. Fence Top Rails (y = 3.0)
+    if (position.y >= 2.2) {
+      // Back Fence
+      if (Math.abs(position.z - (-24)) < 0.9 && position.x >= -24.8 && position.x <= 24.8) {
+        maxY = Math.max(maxY, 3.0);
+      }
+      // Left Fence
+      if (Math.abs(position.x - (-24)) < 0.9 && position.z >= -24.8 && position.z <= 15.8) {
+        maxY = Math.max(maxY, 3.0);
+      }
+      // Right Fence
+      if (Math.abs(position.x - 24) < 0.9 && position.z >= -24.8 && position.z <= 15.8) {
+        maxY = Math.max(maxY, 3.0);
+      }
+    }
+
+    // 5. Birdfeeder Tops & Baffles
+    // Feeder #2 Baffle Top (y = 3.8)
+    if (Math.hypot(position.x - (-12), position.z - (-10)) < 0.9 && position.y >= 3.0) {
+      maxY = Math.max(maxY, 3.8);
+    }
+    // Feeder #3 Tray Top (y = 2.0)
+    if (Math.hypot(position.x - 14, position.z - (-8)) < 0.9 && position.y >= 1.2) {
+      maxY = Math.max(maxY, 2.0);
+    }
+
+    return maxY;
   }
 
   // Check if position is near climbable Tree Trunk
@@ -80,9 +115,8 @@ export class PhysicsEngine {
   resolveSolidCollisions(position, playerRadius = 0.4, isClimbing = false, onBranchMode = false) {
     if (onBranchMode) return;
 
-    // 1. House Solid Bounding Box
-    // House bounds: x [-8.0, 8.0], z [-4.0, 8.0], y [0, 8.0]
-    if (position.y < 8.0) {
+    // 1. House Solid Body Walls (x: [-8, 8], z: [-4, 8], y: [0, 7.8])
+    if (position.y < 7.8) {
       const minX = -8.0 - playerRadius;
       const maxX = 8.0 + playerRadius;
       const minZ = -4.0 - playerRadius;
@@ -102,9 +136,8 @@ export class PhysicsEngine {
       }
     }
 
-    // 2. Garden Shed Solid Box
-    // Shed bounds: x [-19.0, -13.0], z [-19.0, -13.0], y [0, 4.5]
-    if (position.y < 4.5) {
+    // 2. Garden Shed Body Walls (x: [-19, -13], z: [-19, -13], y: [0, 4.3])
+    if (position.y < 4.3) {
       const minX = -19.0 - playerRadius;
       const maxX = -13.0 + playerRadius;
       const minZ = -19.0 - playerRadius;
@@ -154,17 +187,17 @@ export class PhysicsEngine {
     }
 
     // 5. Perimeter Fences
-    if (!isClimbing) {
+    if (!isClimbing && position.y < 2.8) {
       // Back Fence z = -24
-      if (Math.abs(position.z - (-24)) < 0.8 && position.x >= -24.5 && position.x <= 24.5 && position.y < 2.8) {
+      if (Math.abs(position.z - (-24)) < 0.8 && position.x >= -24.5 && position.x <= 24.5) {
         position.z = -24.0 + (playerRadius + 0.3);
       }
       // Left Fence x = -24
-      if (Math.abs(position.x - (-24)) < 0.8 && position.z >= -24.5 && position.z <= 15.5 && position.y < 2.8) {
+      if (Math.abs(position.x - (-24)) < 0.8 && position.z >= -24.5 && position.z <= 15.5) {
         position.x = -24.0 + (playerRadius + 0.3);
       }
       // Right Fence x = 24
-      if (Math.abs(position.x - 24) < 0.8 && position.z >= -24.5 && position.z <= 15.5 && position.y < 2.8) {
+      if (Math.abs(position.x - 24) < 0.8 && position.z >= -24.5 && position.z <= 15.5) {
         position.x = 24.0 - (playerRadius + 0.3);
       }
     }
