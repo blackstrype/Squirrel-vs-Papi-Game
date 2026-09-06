@@ -19,22 +19,26 @@ export class AudioSystem {
     }
   }
 
+  _setupOscillator(type) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = type;
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    return { osc, gain };
+  }
+
   playJump() {
     if (!this.ctx || this.isMuted) return;
     this.init();
 
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
+    const { osc, gain } = this._setupOscillator('sine');
 
-    osc.type = 'sine';
     osc.frequency.setValueAtTime(300, this.ctx.currentTime);
     osc.frequency.exponentialRampToValueAtTime(650, this.ctx.currentTime + 0.15);
 
     gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
     gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
-
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
 
     osc.start();
     osc.stop(this.ctx.currentTime + 0.15);
@@ -46,18 +50,13 @@ export class AudioSystem {
 
     const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
     notes.forEach((freq, idx) => {
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
+      const { osc, gain } = this._setupOscillator('triangle');
       const time = this.ctx.currentTime + idx * 0.05;
 
-      osc.type = 'triangle';
       osc.frequency.setValueAtTime(freq, time);
 
       gain.gain.setValueAtTime(0.25, time);
       gain.gain.exponentialRampToValueAtTime(0.001, time + 0.12);
-
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
 
       osc.start(time);
       osc.stop(time + 0.12);
@@ -68,18 +67,13 @@ export class AudioSystem {
     if (!this.ctx || this.isMuted) return;
     this.init();
 
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
+    const { osc, gain } = this._setupOscillator('sine');
 
-    osc.type = 'sine';
     osc.frequency.setValueAtTime(800, this.ctx.currentTime);
     osc.frequency.exponentialRampToValueAtTime(1400, this.ctx.currentTime + 0.08);
 
     gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
     gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
-
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
 
     osc.start();
     osc.stop(this.ctx.currentTime + 0.08);
@@ -90,19 +84,14 @@ export class AudioSystem {
     this.init();
 
     for (let i = 0; i < 4; i++) {
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
+      const { osc, gain } = this._setupOscillator('sawtooth');
       const time = this.ctx.currentTime + i * 0.04;
 
-      osc.type = 'sawtooth';
       osc.frequency.setValueAtTime(1800 + Math.random() * 600, time);
       osc.frequency.linearRampToValueAtTime(2200 + Math.random() * 400, time + 0.03);
 
       gain.gain.setValueAtTime(0.12, time);
       gain.gain.linearRampToValueAtTime(0.001, time + 0.03);
-
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
 
       osc.start(time);
       osc.stop(time + 0.03);
@@ -156,18 +145,13 @@ export class AudioSystem {
 
     const chords = [523.25, 659.25, 783.99, 1046.50];
     chords.forEach((freq, idx) => {
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
+      const { osc, gain } = this._setupOscillator('triangle');
       const time = this.ctx.currentTime + idx * 0.12;
 
-      osc.type = 'triangle';
       osc.frequency.setValueAtTime(freq, time);
 
       gain.gain.setValueAtTime(0.3, time);
       gain.gain.exponentialRampToValueAtTime(0.001, time + 0.6);
-
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
 
       osc.start(time);
       osc.stop(time + 0.6);
@@ -178,18 +162,13 @@ export class AudioSystem {
     if (!this.ctx || this.isMuted) return;
     this.init();
 
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
+    const { osc, gain } = this._setupOscillator('sine');
 
-    osc.type = 'sine';
     osc.frequency.setValueAtTime(400, this.ctx.currentTime);
     osc.frequency.linearRampToValueAtTime(850, this.ctx.currentTime + 0.25);
 
     gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
     gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
-
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
 
     osc.start();
     osc.stop(this.ctx.currentTime + 0.25);
