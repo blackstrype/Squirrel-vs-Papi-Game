@@ -111,50 +111,38 @@ export class PhysicsEngine {
     return { canClimb: false };
   }
 
+  _resolveBoxCollision(position, minXBase, maxXBase, minZBase, maxZBase, playerRadius) {
+    const minX = minXBase - playerRadius;
+    const maxX = maxXBase + playerRadius;
+    const minZ = minZBase - playerRadius;
+    const maxZ = maxZBase + playerRadius;
+
+    if (position.x > minX && position.x < maxX && position.z > minZ && position.z < maxZ) {
+      const dx1 = position.x - minX;
+      const dx2 = maxX - position.x;
+      const dz1 = position.z - minZ;
+      const dz2 = maxZ - position.z;
+
+      const minDist = Math.min(dx1, dx2, dz1, dz2);
+      if (minDist === dx1) position.x = minX;
+      else if (minDist === dx2) position.x = maxX;
+      else if (minDist === dz1) position.z = minZ;
+      else if (minDist === dz2) position.z = maxZ;
+    }
+  }
+
   // Solid Object Collision Response (House Walls, Shed Walls, Tree Trunk, Fences, Poles)
   resolveSolidCollisions(position, playerRadius = 0.4, isClimbing = false, onBranchMode = false) {
     if (onBranchMode) return;
 
     // 1. House Solid Body Walls (x: [-8, 8], z: [-4, 8], y: [0, 7.8])
     if (position.y < 7.8) {
-      const minX = -8.0 - playerRadius;
-      const maxX = 8.0 + playerRadius;
-      const minZ = -4.0 - playerRadius;
-      const maxZ = 8.0 + playerRadius;
-
-      if (position.x > minX && position.x < maxX && position.z > minZ && position.z < maxZ) {
-        const dx1 = position.x - minX;
-        const dx2 = maxX - position.x;
-        const dz1 = position.z - minZ;
-        const dz2 = maxZ - position.z;
-
-        const minDist = Math.min(dx1, dx2, dz1, dz2);
-        if (minDist === dx1) position.x = minX;
-        else if (minDist === dx2) position.x = maxX;
-        else if (minDist === dz1) position.z = minZ;
-        else if (minDist === dz2) position.z = maxZ;
-      }
+      this._resolveBoxCollision(position, -8.0, 8.0, -4.0, 8.0, playerRadius);
     }
 
     // 2. Garden Shed Body Walls (x: [-19, -13], z: [-19, -13], y: [0, 4.3])
     if (position.y < 4.3) {
-      const minX = -19.0 - playerRadius;
-      const maxX = -13.0 + playerRadius;
-      const minZ = -19.0 - playerRadius;
-      const maxZ = -13.0 + playerRadius;
-
-      if (position.x > minX && position.x < maxX && position.z > minZ && position.z < maxZ) {
-        const dx1 = position.x - minX;
-        const dx2 = maxX - position.x;
-        const dz1 = position.z - minZ;
-        const dz2 = maxZ - position.z;
-
-        const minDist = Math.min(dx1, dx2, dz1, dz2);
-        if (minDist === dx1) position.x = minX;
-        else if (minDist === dx2) position.x = maxX;
-        else if (minDist === dz1) position.z = minZ;
-        else if (minDist === dz2) position.z = maxZ;
-      }
+      this._resolveBoxCollision(position, -19.0, -13.0, -19.0, -13.0, playerRadius);
     }
 
     // 3. Oak Tree Trunk Solid Cylinder (Only when NOT climbing tree)
