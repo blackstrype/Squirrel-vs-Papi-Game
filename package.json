@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "testrun": "vitest run"
+    "test": "vitest"
   },
   "dependencies": {
     "cannon-es": "^0.20.0",
@@ -16,7 +17,9 @@
     "three": "^0.160.0"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^7.0.1",
+    "jsdom": "^29.1.1",
     "vite": "^5.1.0",
-    "vitest": "^1.2.2"
+    "vitest": "^1.6.0"
   }
 }
